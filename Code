@@ -1,0 +1,126 @@
+!pip install textblob
+!pip install tweepy
+!pip install pycountry 
+!pip install langdetect
+# run to install libraries 
+
+!python -m nltk.downloader all
+# run ti install libraries
+
+from textblob import TextBlob
+import sys
+import tweepy
+import matplotlib.pyplot as plt
+import numpy as np
+import os
+import nltk
+import pandas as pd
+import pycountry
+import re
+import string
+from wordcloud import WordCloud, STOPWORDS
+from PIL import Image
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+from langdetect import detect
+from nltk.stem import SnowballStemmer
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+from sklearn.feature_extraction.text import CountVectorizer
+
+
+# Authentication
+consumerKey = "psH4W24K6rxcPwQZVpUabFhgr"
+consumerSecret = "WTZAAlxAXYByIaQHcjjTKySn2lxpKw7DW8iX9L1o3gMBgt8bRN"
+accessToken = "1496377248395378689-EEQ1E7vQrxjwes5sQBelWrPMpMoACH"
+accessTokenSecret = "tcvfS7Tcb1d0h0Zrs7JrMrBr6zNcegFVBHpfekpQ2uvuK"
+auth = tweepy.OAuthHandler(consumerKey, consumerSecret)
+auth.set_access_token(accessToken, accessTokenSecret)
+api = tweepy.API(auth)
+
+
+import nltk
+nltk.download('punkt')
+from nltk.stem import PorterStemmer
+from nltk.tokenize import word_tokenize
+nltk.download('stopwords')
+from nltk.corpus import stopwords
+
+
+def cleanText(text):
+    text = text.lower()
+  # Removes all mentions (@username) from the tweet since it is of no use to us
+    text = re.sub(r'(@[A-Za-z0-9_]+)', '', text)
+    
+  # Removes any link in the text
+    text = re.sub('http://\S+|https://\S+', '', text)
+
+  # Only considers the part of the string with char between a to z or digits and whitespace characters
+  # Basically removes punctuation
+    text = re.sub(r'[^\w\s]', '', text)
+
+  # Removes stop words that have no use in sentiment analysis 
+    text_tokens = word_tokenize(text)
+    text = [word for word in text_tokens if not word in stopwords.words()]
+
+    text = ' '.join(text)
+    return text
+    
+    
+    def stem(text):
+  # This function is used to stem the given sentence
+    porter = PorterStemmer()
+    token_words = word_tokenize(text)
+    stem_sentence = []
+    for word in token_words:
+        stem_sentence.append(porter.stem(word))
+    return " ".join(stem_sentence)
+    
+    
+    keyword = 'uddhavthackeray'
+noOfTweet = 1000
+tweets = tweepy.Cursor(api.search, q=keyword).items(noOfTweet)
+# print(tweets)
+tweet_list = []
+ans = 0
+ans_w = 0
+positive = 0
+negative = 0
+neutral = 0
+
+for tweet in tweets:
+   #print(tweet.text)
+   clean_txt = cleanText(tweet.text)
+   stem_txt = stem(clean_txt)
+   tweet_list.append(tweet.text)
+   score_without =SentimentIntensityAnalyzer().polarity_scores(tweet.text)
+   score = SentimentIntensityAnalyzer().polarity_scores(stem_txt)
+   if(score['compound']>= 0.05):
+       positive += 1
+
+   elif(score['compound']<= -0.05):
+       negative += 1 
+   else:
+       neutral += 1
+
+   ans += score['compound']
+   ans_w += score_without['compound']
+print('Number of Positive, negative and Neutral: ',positive,negative,neutral)
+print('Compound with cleaning:',ans)
+print('Compound without cleaning:',ans_w)
+print('Average Sentiment:',ans/noOfTweet)
+print('Number of tweets:',len(tweet_list))
+
+
+#Creating PieChart
+labels = ['Positive ['+str(100*positive/noOfTweet)+'%]' , 'Neutral ['+str(100*neutral/noOfTweet)+'%]','Negative ['+str(100*negative/noOfTweet)+'%]']
+sizes = [positive, neutral, negative]
+colors = ['yellowgreen', 'blue','red']
+patches, texts = plt.pie(sizes,colors=colors, startangle=90)
+plt.style.use('default')
+plt.legend(labels)
+plt.title('Sentiment Analysis Result for keyword= '+keyword+'')
+plt.axis('equal')
+plt.show()
+
+
+
+#  link to run for personal use https://colab.research.google.com/drive/1nuX1cj51oh0EEgHhK-z5ljPN2bOOcZZ7?usp=sharing
